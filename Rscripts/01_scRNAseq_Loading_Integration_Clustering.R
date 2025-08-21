@@ -13,8 +13,8 @@ plan(multisession)
 options(future.globals.maxSize = 3e9)
 
 # Project structure (set your working directory to the repo root before running)
-project_dir <- '/data/novaseq-2024/240523_A01059_0383_BHFNN3DSXC/REQ_24_089_090_cellranger_with_featureCapture/'
-input_dir   <- file.path(project_dir, "input_data")         # contains per-sample Cell Ranger folders
+project_dir <- "/PATH/TO/PROJECT"
+input_dir   <- file.path(project_dir, "input_data")
 output_dir  <- file.path(project_dir, "outputs_scRNA")
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
