@@ -8,26 +8,26 @@ suppressPackageStartupMessages({
 })
 
 project_dir <- getwd()
-out_dir     <- file.path(project_dir, "outputs_scRNA")
-obj_path    <- file.path(out_dir, "sc_object_annotated_clean.rds")  # from previous step
+out_dir <- file.path(project_dir, "outputs_scRNA")
+obj_path <- file.path(out_dir, "sc_object_annotated_clean.rds") # from previous step
 
 sc_object <- readRDS(obj_path)
 
 #### 1) Subset to WT/Young ReC ------------------------------------------
 # Assumes metadata columns: age (Young/Old), tissue (Cortex/Cerebellum), cell_class (ReC)
-sc_object$age <- factor(sc_object$age, levels = c("Young","Old"), ordered = TRUE)
+sc_object$age <- factor(sc_object$age, levels = c("Young", "Old"), ordered = TRUE)
 
-sc_young          <- subset(sc_object, subset = age == "Young")
-sc_young_mg       <- subset(sc_young, subset = cell_class == "ReC")
+sc_young <- subset(sc_object, subset = age == "Young")
+sc_young_mg <- subset(sc_young, subset = cell_class == "ReC")
 
 DefaultAssay(sc_young_mg) <- "RNA"
-Idents(sc_young_mg)       <- "tissue"   # contrasts will be "Cerebellum" vs "Cortex"
+Idents(sc_young_mg) <- "tissue" # contrasts will be "Cerebellum" vs "Cortex"
 
 #### 2) DEG (MAST) -------------------------------------------------------------
-test_to_use     <- "MAST"
-min_pct         <- 0.05
+test_to_use <- "MAST"
+min_pct <- 0.05
 logfc_threshold <- 0.05
-assay_to_use    <- "RNA"
+assay_to_use <- "RNA"
 
 deg_region <- FindMarkers(
   object          = sc_young_mg,
@@ -50,15 +50,15 @@ deg_region <- deg_region %>%
 
 #### 3) Simple volcano plot ----------------------------------------------------
 # thresholds used in the paper-style panels
-lfc_cut  <- 0.25
+lfc_cut <- 0.25
 padj_cut <- 0.05
 
 deg_region <- deg_region %>%
   mutate(
     status = case_when(
-      p_val_BH <= padj_cut & avg_log2FC >=  lfc_cut  ~ "Up",
-      p_val_BH <= padj_cut & avg_log2FC <= -lfc_cut  ~ "Down",
-      TRUE                                           ~ "n.s."
+      p_val_BH <= padj_cut & avg_log2FC >= lfc_cut ~ "Up",
+      p_val_BH <= padj_cut & avg_log2FC <= -lfc_cut ~ "Down",
+      TRUE ~ "n.s."
     )
   )
 
@@ -73,7 +73,7 @@ p_volcano <- ggplot(deg_region, aes(x = avg_log2FC, y = -log10(p_val_BH))) +
   theme_classic(base_size = 11)
 
 # Optional labels for a few key genes (edit as desired)
-label_genes <- c("Tmem119","P2ry12","H2-Ab1","B2m","Il1b","Ifit3","Lpl")
+label_genes <- c("Tmem119", "P2ry12", "H2-Ab1", "B2m", "Il1b", "Ifit3", "Lpl")
 lab_df <- subset(deg_region, gene %in% label_genes)
 if (nrow(lab_df)) {
   p_volcano <- p_volcano +
@@ -81,4 +81,4 @@ if (nrow(lab_df)) {
     ggrepel::geom_text_repel(data = lab_df, aes(label = gene), size = 3, max.overlaps = 50)
 }
 
-print(p_volcano)  
+print(p_volcano)

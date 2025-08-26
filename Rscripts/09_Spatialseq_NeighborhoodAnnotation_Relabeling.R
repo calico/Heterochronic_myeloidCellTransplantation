@@ -2,14 +2,14 @@
 suppressPackageStartupMessages({
   library(Seurat)
   library(dplyr)
-  library(data.table)   # rbindlist
+  library(data.table) # rbindlist
   library(ggplot2)
 })
 
 # --- Config / I/O -------------------------------------------------------------
-main_folder   <- "/PATH/TO/MAIN/FOLDER"
+main_folder <- "/PATH/TO/MAIN/FOLDER"
 output_folder <- file.path(main_folder, "output_data")
-projectID     <- "ReC_wIFNpanel_spatial"
+projectID <- "ReC_wIFNpanel_spatial"
 
 brain <- readRDS(file.path(output_folder, paste0(projectID, "_SCT_Harmony_neighborhood.rds")))
 
@@ -23,7 +23,7 @@ if (!"cell_index" %in% colnames(brain@meta.data)) {
 stopifnot("region_crude" %in% colnames(brain@meta.data))
 
 # a clean color palette for final plots
-target_levels <- c("cor","cer","cc","hip","mid","plx","str","thal","wm","vent","other")
+target_levels <- c("cor", "cer", "cc", "hip", "mid", "plx", "str", "thal", "wm", "vent", "other")
 color_code_target_region <- setNames(
   Seurat::DiscretePalette(length(target_levels), palette = "polychrome"),
   target_levels
@@ -46,7 +46,7 @@ assign_by_selector <- function(obj, subset_expr, set_to, group_col = "target_reg
 meta_data_list <- list()
 
 # ============================ annotate ONE sample =============================
-sample_to_analyze <- "Old_02"  # <-- change to your sample label
+sample_to_analyze <- "Old_02" # <-- change to your sample label
 current_brain <- subset(brain, subset = sample == sample_to_analyze)
 
 # 1) initialize a working column from the crude clusters
@@ -56,9 +56,9 @@ seed_map <- c(
   Cerebellum            = "cer",
   Cortex                = "cor",
   Striatum              = "str",
-  White_matter          = "White_matter",  # refined further below
+  White_matter          = "White_matter", # refined further below
   Hippocampus           = "hip",
-  Midbrain_Pons_Medulla = "Midbrain_Pons_Medulla",  # refined below
+  Midbrain_Pons_Medulla = "Midbrain_Pons_Medulla", # refined below
   ChoroidPlexus         = "plx",
   Ventricle             = "vent"
 )
@@ -96,7 +96,7 @@ current_brain <- assign_by_selector(
 # 5) refine **hippocampus** from all still-ambiguous areas
 current_brain <- assign_by_selector(
   current_brain,
-  subset_expr = target_region %in% c("other","White_matter","Midbrain_Pons_Medulla"),
+  subset_expr = target_region %in% c("other", "White_matter", "Midbrain_Pons_Medulla"),
   set_to      = "hip"
 )
 # keep thalamus intact (override if needed)
@@ -124,8 +124,10 @@ current_brain$target_region[!(current_brain$target_region %in% target_levels)] <
 current_brain$target_region <- factor(current_brain$target_region, levels = target_levels, ordered = TRUE)
 
 # visualize result for this sample
-DimPlot(current_brain, reduction = "numap", group.by = "target_region",
-        cols = color_code_target_region, raster = FALSE)
+DimPlot(current_brain,
+  reduction = "numap", group.by = "target_region",
+  cols = color_code_target_region, raster = FALSE
+)
 
 # stash annotated metadata
 meta_data_list[[sample_to_analyze]] <- current_brain@meta.data
@@ -145,9 +147,13 @@ brain$target_region <- factor(brain$target_region, levels = target_levels, order
 # compare crude vs curated, per sample
 # (replace with your preferred palettes)
 DimPlot(brain, reduction = "numap", group.by = "region_crude", split.by = "sample")
-DimPlot(brain, reduction = "numap", group.by = "target_region",
-        split.by = "sample", cols = color_code_target_region)
+DimPlot(brain,
+  reduction = "numap", group.by = "target_region",
+  split.by = "sample", cols = color_code_target_region
+)
 
 # save
-saveRDS(brain, file = file.path(output_folder,
-                                paste0(projectID, "_Harmony_neighborhood_withRegionLabels.rds")))
+saveRDS(brain, file = file.path(
+  output_folder,
+  paste0(projectID, "_Harmony_neighborhood_withRegionLabels.rds")
+))
