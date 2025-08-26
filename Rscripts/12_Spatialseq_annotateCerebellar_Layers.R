@@ -97,7 +97,8 @@ classify_cerebellar_microglia <- function(df,
     if (in_p && !in_g) {
       return("molecular_layer")
     }
-    # /* (!in_p &&  in_g) */    "granule_layer"
+    # /* (!in_p &&  in_g) */ 
+    return("granule_layer")
   })
 
   out <- df_micro %>%
