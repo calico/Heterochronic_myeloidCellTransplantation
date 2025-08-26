@@ -18,7 +18,7 @@ in_rds <- file.path(
   "_Harmony_neighborhood_withRegionLabels_mapmycells_annotated_spatial_allcluster_annotated_CerebellarLayer_annotated.rds"
 )
 out_dir <- "/PATH/TO/output"
-dir.create(out_dir, spatial_allursive = TRUE, showWarnings = FALSE)
+dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 spatial_all <- readRDS(in_rds)
 
