@@ -3,24 +3,27 @@ suppressPackageStartupMessages({
   library(Seurat)
   library(dplyr)
   library(future)
-  library(dbscan)   # frNN
+  library(dbscan) # frNN
   library(ggplot2)
 })
 
 # ---------- Config ----------
 plan(multisession, workers = 20)
-options(future.globals.maxSize = 1e10)  # ~10 GB
+options(future.globals.maxSize = 1e10) # ~10 GB
 
-main_folder   <- "/PATH/TO/MAIN/FOLDER"
-input_folder  <- file.path(main_folder, "input_data")
+main_folder <- "/PATH/TO/MAIN/FOLDER"
+input_folder <- file.path(main_folder, "input_data")
 output_folder <- file.path(main_folder, "output_data")
-projectID     <- "ReC_wIFNpanel_spatial"
+projectID <- "ReC_wIFNpanel_spatial"
 
-dir.create(input_folder,  recursive = TRUE, showWarnings = FALSE)
+dir.create(input_folder, recursive = TRUE, showWarnings = FALSE)
 dir.create(output_folder, recursive = TRUE, showWarnings = FALSE)
 
 # ---------- Helpers ----------
-clear_reductions <- function(x) { x@reductions <- list(); x }
+clear_reductions <- function(x) {
+  x@reductions <- list()
+  x
+}
 
 make_numap <- function(obj, x_col = "y_slide_mm", y_col = "x_slide_mm") {
   em <- as.matrix(obj@meta.data[, c(x_col, y_col)])
@@ -32,14 +35,14 @@ make_numap <- function(obj, x_col = "y_slide_mm", y_col = "x_slide_mm") {
 compute_neighborhood_stats <- function(coords_um, labels, radius_um = 100) {
   coords_um <- as.matrix(coords_um)
   lab <- factor(labels)
-  nn   <- dbscan::frNN(coords_um, eps = radius_um)
-  L    <- levels(lab)
-  out  <- matrix(0L, nrow(coords_um), length(L), dimnames = list(NULL, L))
-  
+  nn <- dbscan::frNN(coords_um, eps = radius_um)
+  L <- levels(lab)
+  out <- matrix(0L, nrow(coords_um), length(L), dimnames = list(NULL, L))
+
   for (i in seq_along(nn$id)) {
     ids <- nn$id[[i]]
     if (length(ids)) {
-      keep <- nn$dist[[i]] > 0  # drop self (distance==0)
+      keep <- nn$dist[[i]] > 0 # drop self (distance==0)
       if (any(keep)) {
         tab <- table(lab[ids[keep]])
         out[i, names(tab)] <- as.integer(tab)
@@ -47,8 +50,11 @@ compute_neighborhood_stats <- function(coords_um, labels, radius_um = 100) {
     }
   }
   # row-wise z-score
-  zfun <- function(v) { s <- sd(v); if (s == 0) rep(0, length(v)) else (v - mean(v))/s }
-  out  <- t(apply(out, 1, zfun))
+  zfun <- function(v) {
+    s <- sd(v)
+    if (s == 0) rep(0, length(v)) else (v - mean(v)) / s
+  }
+  out <- t(apply(out, 1, zfun))
   out[is.na(out) | is.infinite(out)] <- 0
   out
 }
@@ -78,23 +84,26 @@ names(Spatial_Seq_list) <- sample_names
 
 # --- optional manual flips to align sections (edit/remove as needed) ---
 # preview (quiet, base ggplot)
-lapply(Spatial_Seq_list, \(o) print(ggplot(o@meta.data, aes(y_slide_mm, x_slide_mm))+
-   geom_point(size=0.3, alpha=0.6)+theme_void()))
+lapply(Spatial_Seq_list, \(o) print(ggplot(o@meta.data, aes(y_slide_mm, x_slide_mm)) +
+  geom_point(size = 0.3, alpha = 0.6) +
+  theme_void()))
 
 Spatial_Seq_list[["Young_01"]]@meta.data$y_slide_mm <- -Spatial_Seq_list[["Young_01"]]@meta.data$y_slide_mm
 Spatial_Seq_list[["Young_02"]]@meta.data$y_slide_mm <- -Spatial_Seq_list[["Young_02"]]@meta.data$y_slide_mm
 Spatial_Seq_list[["Old_01"]]  @meta.data$y_slide_mm <- -Spatial_Seq_list[["Old_01"]]  @meta.data$y_slide_mm
 Spatial_Seq_list[["Old_02"]]  @meta.data$y_slide_mm <- -Spatial_Seq_list[["Old_02"]]  @meta.data$y_slide_mm
 
-#Confirm orientation
-lapply(Spatial_Seq_list, \(o) print(ggplot(o@meta.data, aes(y_slide_mm, x_slide_mm))+
-                                      geom_point(size=0.3, alpha=0.6)+theme_void()))
+# Confirm orientation
+lapply(Spatial_Seq_list, \(o) print(ggplot(o@meta.data, aes(y_slide_mm, x_slide_mm)) +
+  geom_point(size = 0.3, alpha = 0.6) +
+  theme_void()))
 
 # ----------------------------------------------------------------------
 
 # ---------- Merge & basic cleaning ----------
 brain <- Reduce(merge, Spatial_Seq_list)
-rm(Spatial_Seq_list); gc()
+rm(Spatial_Seq_list)
+gc()
 
 # drop CosMx-flagged low-quality cells if present
 if ("qcCellsFlagged" %in% colnames(brain@meta.data)) {
@@ -115,9 +124,9 @@ brain <- SCTransform(brain, clip.range = c(-10, 10))
 brain <- RunPCA(brain, npcs = 30, verbose = F)
 
 brain <- IntegrateLayers(
-  object = brain, normalization.method = "SCT",method = HarmonyIntegration,
+  object = brain, normalization.method = "SCT", method = HarmonyIntegration,
   orig.reduction = "pca", new.reduction = "harmony",
-  verbose = T,  k.weight = 100
+  verbose = T, k.weight = 100
 )
 
 brain <- FindNeighbors(brain, reduction = "harmony", dims = 1:30)
@@ -127,14 +136,14 @@ brain <- RunUMAP(brain, reduction = "harmony", dims = 1:30, reduction.name = "um
 (p3 <- DimPlot(
   brain,
   reduction = "umap.harmony",
-  group.by = c("harmony_clusters"), split.by = 'sample',
+  group.by = c("harmony_clusters"), split.by = "sample",
   combine = T
 ))
 
-DefaultAssay(brain) <- 'RNA'
+DefaultAssay(brain) <- "RNA"
 brain <- JoinLayers(brain)
 
-DefaultAssay(brain) <- 'SCT'
+DefaultAssay(brain) <- "SCT"
 brain <- SCTransform(brain, assay = "RNA", verbose = T, clip.range = c(-10, 10))
 
 # ---------- Neighborhood (region) analysis ----------
@@ -154,7 +163,7 @@ for (s in samples) {
   idx <- which(meta$sample == s)
   sub_coords <- meta[idx, c("x_um", "y_um")]
   sub_labels <- meta[idx, "cell_grouping", drop = TRUE]
-  sub_stats  <- compute_neighborhood_stats(sub_coords, sub_labels, radius_um = 100)
+  sub_stats <- compute_neighborhood_stats(sub_coords, sub_labels, radius_um = 100)
   nbor_mat[idx, colnames(sub_stats)] <- sub_stats
 }
 
@@ -174,7 +183,3 @@ brain$regionCluster_kmeans <- factor(km$cluster)
 
 # ---------- Save ----------
 saveRDS(brain, file = file.path(output_folder, paste0(projectID, "_SCT_Harmony_neighborhood.rds")))
-
-
-
-

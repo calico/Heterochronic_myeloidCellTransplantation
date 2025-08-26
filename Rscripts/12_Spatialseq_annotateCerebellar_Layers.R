@@ -2,7 +2,7 @@ suppressPackageStartupMessages({
   library(Seurat)
   library(dplyr)
   library(purrr)
-  library(RANN)      # nn2
+  library(RANN) # nn2
   library(data.table)
   library(ggplot2)
 })
@@ -17,11 +17,13 @@ suppressPackageStartupMessages({
 #     cellMap_subclass: e.g. "313 CBX Purkinje Gaba", "314 CB Granule Glut"
 
 #-------------------- CONFIG --------------------
-proj_dir        <- "/PATH/TO/PROJECT"
-in_spatial_rds  <- file.path(proj_dir, "input_data",
-                             "_Harmony_neighborhood_withRegionLabels_mapmycells_annotated_ReCcluster_annotated.rds")
-in_rec_rds      <- file.path(proj_dir, "input_data", "ReC_scRNA_annotated.rds")   # <-- your ReC object
-out_dir         <- file.path(proj_dir, "outputs_spatialReC")
+proj_dir <- "/PATH/TO/PROJECT"
+in_spatial_rds <- file.path(
+  proj_dir, "input_data",
+  "_Harmony_neighborhood_withRegionLabels_mapmycells_annotated_ReCcluster_annotated.rds"
+)
+in_rec_rds <- file.path(proj_dir, "input_data", "ReC_scRNA_annotated.rds") # <-- your ReC object
+out_dir <- file.path(proj_dir, "outputs_spatialReC")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 
@@ -43,26 +45,32 @@ ensure_xy_um <- function(obj, x_col = "x", y_col = "y",
 classify_cerebellar_microglia <- function(df,
                                           dist_um = 30,
                                           type_field = "scRNAseq_cell_class",
-                                          rec_value  = "Reconstituted",
+                                          rec_value = "Reconstituted",
                                           mm_class_field = "cellMap_class",
                                           mm_subclass_field = "cellMap_subclass",
                                           x_col = "x", y_col = "y") {
   stopifnot(all(c(type_field, mm_class_field, mm_subclass_field, x_col, y_col) %in% colnames(df)))
-  
+
   # Reconstituted microglia
   df_micro <- df %>% filter(.data[[type_field]] == rec_value)
-  if (nrow(df_micro) == 0) return(NULL)
-  
+  if (nrow(df_micro) == 0) {
+    return(NULL)
+  }
+
   # Purkinje and granule neuron pools (Allen MapMyCells)
-  df_purk <- df %>% filter(.data[[mm_class_field]] == "28 CB GABA",
-                           .data[[mm_subclass_field]] == "313 CBX Purkinje Gaba")
-  df_gran <- df %>% filter(.data[[mm_class_field]] == "29 CB Glut",
-                           .data[[mm_subclass_field]] == "314 CB Granule Glut")
-  
+  df_purk <- df %>% filter(
+    .data[[mm_class_field]] == "28 CB GABA",
+    .data[[mm_subclass_field]] == "313 CBX Purkinje Gaba"
+  )
+  df_gran <- df %>% filter(
+    .data[[mm_class_field]] == "29 CB Glut",
+    .data[[mm_subclass_field]] == "314 CB Granule Glut"
+  )
+
   coords_micro <- as.matrix(df_micro[, c(x_col, y_col)])
   dist_to_purk <- rep(Inf, nrow(df_micro))
   dist_to_gran <- rep(Inf, nrow(df_micro))
-  
+
   if (nrow(df_purk) > 0) {
     nn <- nn2(data = as.matrix(df_purk[, c(x_col, y_col)]), query = coords_micro, k = 1)
     dist_to_purk <- as.numeric(nn$nn.dists[, 1])
@@ -71,28 +79,37 @@ classify_cerebellar_microglia <- function(df,
     nn <- nn2(data = as.matrix(df_gran[, c(x_col, y_col)]), query = coords_micro, k = 1)
     dist_to_gran <- as.numeric(nn$nn.dists[, 1])
   }
-  
+
   # Rules:
   # - neither within dist_um -> white_matter
   # - both within -> choose closer (purk -> ML, gran -> GL)
   # - only purk  -> ML
   # - only gran  -> GL
   layer <- pmap_chr(list(dist_to_purk, dist_to_gran), function(dp, dg) {
-    in_p  <- dp < dist_um
-    in_g  <- dg < dist_um
-    if (!in_p && !in_g)       return("white_matter")
-    if ( in_p &&  in_g)       return(if (dp < dg) "molecular_layer" else "granule_layer")
-    if ( in_p && !in_g)       return("molecular_layer")
-    /* (!in_p &&  in_g) */    "granule_layer"
+    in_p <- dp < dist_um
+    in_g <- dg < dist_um
+    if (!in_p && !in_g) {
+      return("white_matter")
+    }
+    if (in_p && in_g) {
+      return(if (dp < dg) "molecular_layer" else "granule_layer")
+    }
+    if (in_p && !in_g) {
+      return("molecular_layer")
+    }
+    # /* (!in_p &&  in_g) */ 
+    return("granule_layer")
   })
-  
+
   out <- df_micro %>%
-    mutate(cerebellar_layer = layer,
-           dist_to_purkinje = dist_to_purk,
-           dist_to_granule  = dist_to_gran) %>%
+    mutate(
+      cerebellar_layer = layer,
+      dist_to_purkinje = dist_to_purk,
+      dist_to_granule = dist_to_gran
+    ) %>%
     select(cell_id = any_of(c("cell_id", "cell_index", "barcode", "CellID"))[1], everything())
   if (!"cell_id" %in% colnames(out)) {
-    out$cell_id <- rownames(out)   # fall back to rownames if no explicit ID column
+    out$cell_id <- rownames(out) # fall back to rownames if no explicit ID column
   }
   out[, c("cell_id", "cerebellar_layer", "dist_to_purkinje", "dist_to_granule")]
 }
@@ -105,7 +122,7 @@ spatial_all <- ensure_xy_um(spatial_all, x_col = "x", y_col = "y")
 # 2) Work only inside the cerebellum region
 stopifnot("target_region" %in% colnames(spatial_all@meta.data))
 cer_cells <- rownames(spatial_all@meta.data)[spatial_all$target_region == "cer"]
-cer_df    <- spatial_all@meta.data[cer_cells, , drop = FALSE]
+cer_df <- spatial_all@meta.data[cer_cells, , drop = FALSE]
 cer_df$cell_id <- rownames(cer_df)
 
 # 3) Split by section if desired (recommended to keep distances local)
@@ -114,9 +131,9 @@ by_sample <- split(cer_df, cer_df$sample)
 res_list <- lapply(by_sample, function(dd) {
   classify_cerebellar_microglia(
     df = dd,
-    dist_um = 30,                             # tweak if your CosMx pixel->µm differs
-    type_field = "scRNAseq_cell_class",       # ReC label you mapped back
-    rec_value  = "Reconstituted",
+    dist_um = 30, # tweak if your CosMx pixel->µm differs
+    type_field = "scRNAseq_cell_class", # ReC label you mapped back
+    rec_value = "Reconstituted",
     mm_class_field = "cellMap_class",
     mm_subclass_field = "cellMap_subclass",
     x_col = "x", y_col = "y"
@@ -137,8 +154,7 @@ spatial_all$cerebellar_layer[overlap] <- res_bind[overlap, "cerebellar_layer"]
 print(table(spatial_all$cerebellar_layer, useNA = "ifany"))
 
 # 6) Quick spatial visualization (uses numap if present; otherwise Harmony UMAP)
-red_to_use <- if ("numap" %in% names(spatial_all@reductions)) "numap" else
-  if ("umap.harmony" %in% names(spatial_all@reductions)) "umap.harmony" else NULL
+red_to_use <- if ("numap" %in% names(spatial_all@reductions)) "numap" else if ("umap.harmony" %in% names(spatial_all@reductions)) "umap.harmony" else NULL
 if (!is.null(red_to_use)) {
   print(DimPlot(spatial_all, reduction = red_to_use, group.by = "cerebellar_layer"))
 }
@@ -149,14 +165,23 @@ plot_df <- by_sample[[one]]
 plot_layers <- res_list[[one]]
 if (!is.null(plot_layers)) {
   gg <- ggplot() +
-    geom_point(data = plot_df %>% dplyr::filter(cellMap_class == "28 CB GABA",
-                                                cellMap_subclass == "313 CBX Purkinje Gaba"),
-               aes(x = x, y = y), color = "hotpink", alpha = 0.25, size = 0.4) +
-    geom_point(data = plot_df %>% dplyr::filter(cellMap_class == "29 CB Glut",
-                                                cellMap_subclass == "314 CB Granule Glut"),
-               aes(x = x, y = y), color = "purple", alpha = 0.15, size = 0.4) +
+    geom_point(
+      data = plot_df %>% dplyr::filter(
+        cellMap_class == "28 CB GABA",
+        cellMap_subclass == "313 CBX Purkinje Gaba"
+      ),
+      aes(x = x, y = y), color = "hotpink", alpha = 0.25, size = 0.4
+    ) +
+    geom_point(
+      data = plot_df %>% dplyr::filter(
+        cellMap_class == "29 CB Glut",
+        cellMap_subclass == "314 CB Granule Glut"
+      ),
+      aes(x = x, y = y), color = "purple", alpha = 0.15, size = 0.4
+    ) +
     geom_point(data = plot_layers, aes(x = x, y = y, color = cerebellar_layer), size = 0.5) +
-    theme_void() + coord_equal()
+    theme_void() +
+    coord_equal()
   print(gg)
 }
 

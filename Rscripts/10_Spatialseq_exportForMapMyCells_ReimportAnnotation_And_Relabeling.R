@@ -15,16 +15,16 @@ suppressPackageStartupMessages({
 set.seed(1)
 
 # -------------------- CONFIG --------------------
-main_dir     <- "/PATH/TO/PROJECT"
-input_rds    <- file.path(main_dir, "input_data", "_Harmony_neighborhood_withRegionLabels.rds")
-out_dir      <- file.path(main_dir, "mapmycells")
+main_dir <- "/PATH/TO/PROJECT"
+input_rds <- file.path(main_dir, "input_data", "_Harmony_neighborhood_withRegionLabels.rds")
+out_dir <- file.path(main_dir, "mapmycells")
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 # which assay to export to MapMyCells (SCT or RNA)
-export_assay <- "SCT"     # change to "RNA" if desired
+export_assay <- "SCT" # change to "RNA" if desired
 
 # path to write the .h5ad that you upload to MapMyCells
-out_h5ad     <- file.path(out_dir, "spatial_integrated_counts.h5ad")
+out_h5ad <- file.path(out_dir, "spatial_integrated_counts.h5ad")
 
 # -------------------- LOAD ----------------------
 obj <- readRDS(input_rds)
@@ -60,7 +60,7 @@ message("Done. Upload the .h5ad to MapMyCells and download the CSV report when r
 # The MMC CSV has a 4-line header before the table in most releases; if your
 # file differs, set `skip_lines` accordingly.
 # AFTER you run MapMyCells online, download the CSV report and point here:
-mmc_csv      <- file.path(out_dir, "spatial_integrated_counts_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping.csv")
+mmc_csv <- file.path(out_dir, "spatial_integrated_counts_10xWholeMouseBrain(CCN20230722)_HierarchicalMapping.csv")
 
 skip_lines <- 4
 stopifnot(file.exists(mmc_csv))
@@ -68,9 +68,11 @@ stopifnot(file.exists(mmc_csv))
 mmc <- suppressMessages(read_csv(mmc_csv, skip = skip_lines))
 mmc <- as.data.frame(mmc)
 
-required_cols <- c("cell_id","class_name","class_bootstrapping_probability",
-                   "subclass_name","subclass_bootstrapping_probability")
-missing_cols  <- setdiff(required_cols, colnames(mmc))
+required_cols <- c(
+  "cell_id", "class_name", "class_bootstrapping_probability",
+  "subclass_name", "subclass_bootstrapping_probability"
+)
+missing_cols <- setdiff(required_cols, colnames(mmc))
 if (length(missing_cols)) {
   stop("MapMyCells CSV is missing columns: ", paste(missing_cols, collapse = ", "))
 }
@@ -94,8 +96,10 @@ obj@meta.data <- meta2[, setdiff(colnames(meta2), "cell_id")]
 
 # quick match sanity check
 match_rate <- mean(!is.na(obj$cellMap_class))
-message(sprintf("MapMyCells annotations matched for %.1f%% of cells.",
-                100 * match_rate))
+message(sprintf(
+  "MapMyCells annotations matched for %.1f%% of cells.",
+  100 * match_rate
+))
 
 # -------------------- QUICK LOOKS --------------------
 p1 <- DimPlot(obj, reduction = "umap.harmony", group.by = "cellMap_class", label = FALSE) +
