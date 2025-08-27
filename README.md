@@ -1,4 +1,4 @@
-# Heterochronic Brain Myeloid Cell Transplantation analsysis
+# Heterochronic Brain Myeloid Cell Transplantation analysis
 This GitHub repository documents the core analyses of scRNA-seq and Spatial-seq data of microglia and heterochronic myeloid cell transplantation experiments. 
 
 ## Background
