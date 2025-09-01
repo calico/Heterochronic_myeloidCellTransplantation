@@ -2,7 +2,7 @@
 This GitHub repository documents the core analyses of scRNA-seq and Spatial-seq data of microglia and heterochronic myeloid cell transplantation experiments. 
 
 ## Background
-Aging, the key risk factor for cognitive decline, impacts the brain in a region- and cell type-specific manner. Microglia are considered among the fastest aging cell types; however, it remains unclear whether this is intrinsically mediated or is driven by age-related changes in neighboring cells. Here, we describe analyses of scRNA-seq and Spatial-seq data derived from in vivo heterochronic myeloid cell replacement experiments. 
+Aging, the key risk factor for cognitive decline, impacts the brain in a region- and cell type-specific manner. Microglia are considered among the fastest aging cell types; however, it remains unclear whether this is intrinsically mediated or is driven by age-related changes in neighboring cells. Here, we describe analyses of scRNA-seq and Spatial-seq data derived from in vivo heterochronic myeloid cell replacement experiments. If an interactive version of the data is preferred, please visit our Shiny-App: https://tinyurl.com/Microglial-Aging-Explorer
 
 <img width="3182" height="1081" alt="Fig_Shiny" src="https://github.com/user-attachments/assets/75055703-fa22-430a-8a3d-4954d1ac5ecf" />
 
