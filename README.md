@@ -26,7 +26,9 @@ Heterochronic myeloid cell replacement reveals the local brain environment as ke
 Claire Gizowski, Galina Popova, Heather Shin, Marius M Mader, Wendy Craft, Bernd J Wranik, Wenjun Kong, Yuheng C Fu, Constanze Depp, Tzuhua D Lin, Baby Martin-McNulty, Han Tai, Nicole Fong, Devyani Jogran, Kayla Leung, Agnieszka Wendorff, David Hendrickson, Astrid Gillich, Andy Chang, Beth Stevens, Marius Wernig, Oliver Hahn. bioRxiv. doi: XXX
 
 ## Data availability
-The sequencing datasets analyzed during the current study are available in the BioProject repository under accession number PRJNA600501, and in the Gene Expression Omnibus repository under accession numbers GSE306641, GSE306331, GSE306335, GSE306344, GSE306351 and GSE306354.
+The sequencing datasets (Bulk-, scRNA- and CITE-seq) analyzed during the current study are available in the BioProject repository under accession number PRJNA600501, and in the Gene Expression Omnibus repository under accession numbers GSE306641, GSE306331, GSE306335, GSE306344, GSE306351 and GSE306354. 
+
+Preprocessed Seurat objects for Spatial-seq (CosMx) data are available at: https://zenodo.org/records/17042028
 
 
 # Installation Instructions
